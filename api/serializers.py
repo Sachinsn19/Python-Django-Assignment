@@ -10,6 +10,30 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username','email','products']
 
+MIN_LENGTH = 8
+class UserRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(min_length=MIN_LENGTH, write_only=True, 
+                error_messages={"min_length":f"Passwords must be longer than {MIN_LENGTH} characters"})
+    password2 = serializers.CharField(min_length=MIN_LENGTH, write_only=True, 
+                error_messages={"min_length":f"Passwords must be longer than {MIN_LENGTH} characters"})
+    class Meta:
+        model=User
+        fields = ('username', 'first_name','last_name','email','password','password2')
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError("Passwords doesn't match")
+        return super().validate(attrs)
+    def create(self, validated_data):
+        user = User.objects.create(
+                username = validated_data['username'],
+                email = validated_data['email'],
+                first_name = validated_data['first_name'],
+                last_name = validated_data['last_name'],
+                )
+        
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
 
 class ProductSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
